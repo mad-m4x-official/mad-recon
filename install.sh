@@ -2,75 +2,83 @@
 
 set -e
 
-GREEN="\033[1;32m"
-RED="\033[1;31m"
-RESET="\033[0m"
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
-TOOLS=(
-  "github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
-  "github.com/projectdiscovery/httpx/cmd/httpx"
-  "github.com/projectdiscovery/naabu/v2/cmd/naabu"
-  "github.com/projectdiscovery/nuclei/v3/cmd/nuclei"
-  "github.com/projectdiscovery/dnsx/cmd/dnsx"
-  "github.com/projectdiscovery/katana/cmd/katana"
-  "github.com/projectdiscovery/notify/cmd/notify"
-  "github.com/projectdiscovery/interactsh/cmd/interactsh-client"
-  "github.com/owasp-amass/amass/v4/..."
-  "github.com/lc/gau/v2/cmd/gau"
-  "github.com/tomnomnom/waybackurls"
-  "github.com/tomnomnom/assetfinder"
-  "github.com/tomnomnom/httprobe"
-  "github.com/hakluke/hakrevdns"
-  "github.com/hakluke/hakrawler"
-  "github.com/hakluke/hakcheckurl"
-  "github.com/dwisiswant0/crlfuzz/cmd/crlfuzz"
-  "github.com/ffuf/ffuf"
-  "github.com/ProjectAnte/dnsgen"
-  "github.com/devanshbatham/openredirex"
-)
+REPO_URL="https://github.com/mad-m4x-official/mad-recon"
+TOOLS_DIR="$HOME/.mad-recon-tools"
 
-install_tool() {
-  TOOL=$1
-  NAME=$(basename $TOOL)
-
-  if command -v $NAME >/dev/null 2>&1; then
-    echo -e "${GREEN}[+] $NAME already installed.${RESET}"
-  else
-    echo -e "${GREEN}[+] Installing $NAME...${RESET}"
-    if ! go install "$TOOL@latest"; then
-      echo -e "${RED}[!] $NAME install failed. Trying to fix...${RESET}"
-      TOOL_PATH=$(go env GOPATH)/pkg/mod/$(echo "$TOOL" | sed 's|github.com/||')
-      sudo chown -R $USER:$USER "$TOOL_PATH" 2>/dev/null || true
-      rm -rf "$TOOL_PATH" 2>/dev/null || true
-      go install "$TOOL@latest"
-    fi
-  fi
+print_status() {
+    echo -e "${GREEN}[+] $1${NC}"
 }
 
-echo -e "${GREEN}[*] Starting Mad Recon Installation...${RESET}"
-sleep 1
+print_error() {
+    echo -e "${RED}[!] $1${NC}"
+}
 
-# Update & install dependencies
-sudo apt update -y && sudo apt install -y git curl wget unzip jq build-essential
+install_requirements() {
+    print_status "Updating package list and installing required packages..."
+    sudo apt update && sudo apt install -y git curl wget unzip jq build-essential
+}
 
-# Install Go if not present
-if ! command -v go >/dev/null 2>&1; then
-  echo -e "${GREEN}[+] Installing Golang...${RESET}"
-  wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
-  sudo rm -rf /usr/local/go
-  sudo tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
-  echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
-  source ~/.bashrc
-  export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-  rm go1.22.2.linux-amd64.tar.gz
-fi
+install_go() {
+    if ! command -v go &>/dev/null; then
+        print_status "Installing Golang..."
+        wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
+        sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+        echo 'export GOPATH=$HOME/go' >> ~/.bashrc
+        source ~/.bashrc
+        rm go1.22.2.linux-amd64.tar.gz
+    else
+        print_status "Golang already installed."
+    fi
+}
 
-# Create ~/go/bin if not exists
-mkdir -p ~/go/bin
+add_to_path() {
+    export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
+}
 
-# Install tools
-for TOOL in "${TOOLS[@]}"; do
-  install_tool "$TOOL"
-done
+install_tool() {
+    TOOL=$1
+    CMD=$2
+    URL=$3
 
-echo -e "${GREEN} All tools installed successfully!${RESET}"
+    if ! command -v $CMD &>/dev/null; then
+        print_status "Installing $TOOL..."
+        go install -v $URL@latest || {
+            print_error "$TOOL install failed. Trying to fix..."
+            go clean -modcache
+            rm -rf ~/go/pkg/mod/github.com/!mzack9999/gcache || true
+            go install -v $URL@latest || print_error "$TOOL failed again. Skipping."
+        }
+    else
+        print_status "$TOOL already installed."
+    fi
+}
+
+main() {
+    echo -e "${GREEN}[*] Starting Mad Recon Installation...${NC}"
+    install_requirements
+    install_go
+    add_to_path
+
+    install_tool "subfinder" "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
+    install_tool "httpx" "httpx" "github.com/projectdiscovery/httpx/cmd/httpx"
+    install_tool "naabu" "naabu" "github.com/projectdiscovery/naabu/v2/cmd/naabu"
+    install_tool "nuclei" "nuclei" "github.com/projectdiscovery/nuclei/v3/cmd/nuclei"
+    install_tool "dnsx" "dnsx" "github.com/projectdiscovery/dnsx/cmd/dnsx"
+    install_tool "katana" "katana" "github.com/projectdiscovery/katana/cmd/katana"
+    install_tool "shuffledns" "shuffledns" "github.com/projectdiscovery/shuffledns/cmd/shuffledns"
+    install_tool "gau" "gau" "github.com/lc/gau/v2/cmd/gau"
+    install_tool "waybackurls" "waybackurls" "github.com/tomnomnom/waybackurls"
+    install_tool "gf" "gf" "github.com/tomnomnom/gf"
+    install_tool "qsreplace" "qsreplace" "github.com/tomnomnom/qsreplace"
+    install_tool "anew" "anew" "github.com/tomnomnom/anew"
+    install_tool "uro" "uro" "github.com/s0md3v/uro"
+
+    print_status "Installation completed. Run your tools from anywhere."
+}
+
+main

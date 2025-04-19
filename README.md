@@ -1,39 +1,34 @@
-# 🕵️‍♂️ MAD-RECON
+# 🕵️‍♂️ Mad Recon
 
-**MAD-RECON** is a one-click installation toolkit for all your Bug Bounty & Recon needs.  
-Fully automated, error-fixing, update-aware installer for Go-based tools and more!
+**Mad Recon** is an all-in-one, fully automated **bug bounty reconnaissance toolkit** designed for ethical hackers, security researchers, and penetration testers.
 
----
-
-## ⚡ Features
-
-- 🚀 One-line install: `wget` or `curl` based setup
-- ✅ Auto-fix permissions, Go modules & environment issues
-- 🔁 Skips tools already installed
-- 🛠️ Installs & updates all top recon tools used by professionals
+It automatically installs, updates, and fixes popular recon tools — all in one click.  
+Made with ❤️ by [mad-m4x-official](https://github.com/mad-m4x-official)
 
 ---
 
-## 🛠️ Tools Included
+## ⚙️ Features
 
-- [Amass](https://github.com/owasp-amass/amass)
-- [Subfinder](https://github.com/projectdiscovery/subfinder)
-- [Httpx](https://github.com/projectdiscovery/httpx)
-- [Naabu](https://github.com/projectdiscovery/naabu)
-- [Assetfinder](https://github.com/tomnomnom/assetfinder)
-- [Nuclei](https://github.com/projectdiscovery/nuclei)
-- [Gau](https://github.com/lc/gau)
-- [Hakrawler](https://github.com/hakluke/hakrawler)
-- [GF](https://github.com/tomnomnom/gf)
-- [Waybackurls](https://github.com/tomnomnom/waybackurls)
-- [Dnsx](https://github.com/projectdiscovery/dnsx)
-- [Shuffledns](https://github.com/projectdiscovery/shuffledns)
-- [Dalfox](https://github.com/hahwul/dalfox)
-- And many more being added regularly...
+- Installs top Go-based recon tools (like subfinder, httpx, naabu, etc.)
+- Auto-checks for missing dependencies and fixes them
+- Skips already installed tools
+- Easy to install and update — everything in one script
+- Designed for **Kali Linux**, **Parrot OS**, and similar distros
 
 ---
 
-## 🚀 Quick Install
+## 🚀 Installation
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/mad-m4x-official/mad-recon/main/install.sh)
+# Step 1: Clone the repository
+git clone https://github.com/mad-m4x-official/mad-recon.git
+
+# Step 2: Enter the directory
+cd mad-recon
+
+# Step 3: Give permission to run
+chmod +x install.sh
+
+# Step 4: Run the installer
+./install.sh
+

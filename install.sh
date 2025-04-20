@@ -1,84 +1,68 @@
 #!/bin/bash
 
-set -e
+# Colors
+GREEN="\033[1;32m"
+RED="\033[1;31m"
+YELLOW="\033[1;33m"
+NC="\033[0m"
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# Banner
+echo -e "${GREEN}"
+echo "███╗   ███╗ █████╗ ██████╗     ██████╗ ███████╗ ██████╗ ██████╗  ██████╗ ███╗   ██╗"
+echo "████╗ ████║██╔══██╗██╔══██╗    ██╔══██╗██╔════╝██╔════╝ ██╔══██╗██╔═══██╗████╗  ██║"
+echo "██╔████╔██║███████║██████╔╝    ██████╔╝█████╗  ██║  ███╗██████╔╝██║   ██║██╔██╗ ██║"
+echo "██║╚██╔╝██║██╔══██║██╔═══╝     ██╔═══╝ ██╔══╝  ██║   ██║██╔═══╝ ██║   ██║██║╚██╗██║"
+echo "██║ ╚═╝ ██║██║  ██║██║         ██║     ███████╗╚██████╔╝██║     ╚██████╔╝██║ ╚████║"
+echo "╚═╝     ╚═╝╚═╝  ╚═╝╚═╝         ╚═╝     ╚══════╝ ╚═════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═══╝"
+echo -e "${NC}"
+echo -e "${YELLOW}Installing mad-recon tools...${NC}"
 
-REPO_URL="https://github.com/mad-m4x-official/mad-recon"
-TOOLS_DIR="$HOME/.mad-recon-tools"
+# Create Go bin path if needed
+mkdir -p "$(go env GOPATH)/bin"
 
-print_status() {
-    echo -e "${GREEN}[+] $1${NC}"
-}
+# Helper: Install Go Tool
+install_go_tool() {
+  TOOL=$1
+  REPO=$2
+  VERSION_CMD=$3
+  LATEST_CMD="go install -v $REPO@latest"
 
-print_error() {
-    echo -e "${RED}[!] $1${NC}"
-}
-
-install_requirements() {
-    print_status "Updating package list and installing required packages..."
-    sudo apt update && sudo apt install -y git curl wget unzip jq build-essential
-}
-
-install_go() {
-    if ! command -v go &>/dev/null; then
-        print_status "Installing Golang..."
-        wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
-        sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-        echo 'export GOPATH=$HOME/go' >> ~/.bashrc
-        source ~/.bashrc
-        rm go1.22.2.linux-amd64.tar.gz
-    else
-        print_status "Golang already installed."
+  echo -e "\n${YELLOW}[*] Checking $TOOL...${NC}"
+  if command -v "$TOOL" >/dev/null 2>&1; then
+    CURRENT_VERSION=$($VERSION_CMD 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+    echo -e "${GREEN}[✔] $TOOL already installed (v$CURRENT_VERSION)${NC}"
+  else
+    echo -e "${YELLOW}[~] $TOOL not found. Installing...${NC}"
+    if ! $LATEST_CMD; then
+      echo -e "${RED}[!] Error installing $TOOL — cleaning Go mod cache and retrying...${NC}"
+      go clean -modcache
+      $LATEST_CMD || echo -e "${RED}[X] Failed to install $TOOL after retrying.${NC}"
     fi
+  fi
 }
 
-add_to_path() {
-    export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-}
+# Install essential recon tools
+install_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder" "subfinder -version"
+install_go_tool "httpx" "github.com/projectdiscovery/httpx/cmd/httpx" "httpx -version"
+install_go_tool "naabu" "github.com/projectdiscovery/naabu/v2/cmd/naabu" "naabu -version"
+install_go_tool "nuclei" "github.com/projectdiscovery/nuclei/v3/cmd/nuclei" "nuclei -version"
+install_go_tool "assetfinder" "github.com/tomnomnom/assetfinder" "assetfinder -h"
+install_go_tool "amass" "github.com/owasp-amass/amass/v4/...@master" "amass -version"
 
-install_tool() {
-    TOOL=$1
-    CMD=$2
-    URL=$3
+# Auto-disable buggy subfinder sources
+CONFIG="$HOME/.config/subfinder/provider-config.yaml"
+mkdir -p "$(dirname "$CONFIG")"
+if [ ! -f "$CONFIG" ]; then
+  echo -e "${YELLOW}[~] Creating subfinder provider config...${NC}"
+  echo "sources:" > "$CONFIG"
+fi
 
-    if ! command -v $CMD &>/dev/null; then
-        print_status "Installing $TOOL..."
-        go install -v $URL@latest || {
-            print_error "$TOOL install failed. Trying to fix..."
-            go clean -modcache
-            rm -rf ~/go/pkg/mod/github.com/!mzack9999/gcache || true
-            go install -v $URL@latest || print_error "$TOOL failed again. Skipping."
-        }
-    else
-        print_status "$TOOL already installed."
-    fi
-}
+if ! grep -q "digitorus:" "$CONFIG"; then
+  echo -e "${YELLOW}[~] Disabling buggy subfinder source: digitorus${NC}"
+  echo -e "\ndigitorus:\n  - disabled: true" >> "$CONFIG"
+else
+  echo -e "${GREEN}[✔] digitorus already disabled${NC}"
+fi
 
-main() {
-    echo -e "${GREEN}[*] Starting Mad Recon Installation...${NC}"
-    install_requirements
-    install_go
-    add_to_path
-
-    install_tool "subfinder" "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
-    install_tool "httpx" "httpx" "github.com/projectdiscovery/httpx/cmd/httpx"
-    install_tool "naabu" "naabu" "github.com/projectdiscovery/naabu/v2/cmd/naabu"
-    install_tool "nuclei" "nuclei" "github.com/projectdiscovery/nuclei/v3/cmd/nuclei"
-    install_tool "dnsx" "dnsx" "github.com/projectdiscovery/dnsx/cmd/dnsx"
-    install_tool "katana" "katana" "github.com/projectdiscovery/katana/cmd/katana"
-    install_tool "shuffledns" "shuffledns" "github.com/projectdiscovery/shuffledns/cmd/shuffledns"
-    install_tool "gau" "gau" "github.com/lc/gau/v2/cmd/gau"
-    install_tool "waybackurls" "waybackurls" "github.com/tomnomnom/waybackurls"
-    install_tool "gf" "gf" "github.com/tomnomnom/gf"
-    install_tool "qsreplace" "qsreplace" "github.com/tomnomnom/qsreplace"
-    install_tool "anew" "anew" "github.com/tomnomnom/anew"
-    install_tool "uro" "uro" "github.com/s0md3v/uro"
-
-    print_status "Installation completed. Run your tools from anywhere."
-}
-
-main
+# Done
+echo -e "\n${GREEN}[✓] mad-recon tools installation complete!${NC}"

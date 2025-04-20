@@ -42,17 +42,3 @@ chmod +x install.sh
 
 
 
-📂 Folder Structure
-mad-recon/
-├── install.sh
-├── README.md
-└── tools/
-
-👨‍💻 Maintainer
-Developed & maintained by mad-m4x-official
-🔒 Passionate about cyber security, red teaming, and automation.
-
-📝 License
-This project is licensed under the MIT License.
-
-🧠 Pro tip: After installation, open a new terminal or restart shell to apply all environment updates properly.
